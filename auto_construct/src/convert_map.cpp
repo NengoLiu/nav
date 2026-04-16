@@ -188,6 +188,7 @@ nav_msgs::msg::Path CoverageManagerNode::triggerPlanningSync()
   auto goal = ComputeCoverage::Goal();
   goal.use_gml_file = true; goal.gml_field = current_gml_path_;
   goal.generate_headland = true; goal.generate_route = true; goal.generate_path = true;
+  goal.frame_id = "map";
 
   auto promise_ptr = std::make_shared<std::promise<nav_msgs::msg::Path>>();
   auto future = promise_ptr->get_future();
