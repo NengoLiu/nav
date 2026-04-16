@@ -424,7 +424,7 @@ void MappingManager::handle_set_path_and_start(
     return;
   }
   auto future = client_set_path_and_start_->async_send_request(req);
-  if (future.wait_for(5s) != std::future_status::ready) {
+  if (future.wait_for(30s) != std::future_status::ready) {
     res->success = false;
     res->message = "设置路径超时";
     return;
