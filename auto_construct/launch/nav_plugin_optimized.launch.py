@@ -145,6 +145,10 @@ def generate_launch_description():
         lidar_frame_arg,
         map_frame_arg,
         use_sim_time_arg,
+        path_file_arg,
+        coverage_frame_id_arg,
+        skip_on_failure_arg,
+        autostart_arg,
 
         # 导航专用节点
         localizer_node,
