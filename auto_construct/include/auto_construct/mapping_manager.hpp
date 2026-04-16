@@ -8,36 +8,23 @@
 #include <auto_construct/srv/update_params.hpp>
 #include <auto_construct/srv/get_map_list.hpp>
 #include <auto_construct/srv/set_path_and_start.hpp>
-#include <nav2_msgs/srv/load_map.hpp>
-
-#include <atomic>
-#include <mutex>
-#include <sys/types.h>
-#include <unistd.h>
 
 // ─────────────────────────────────────────────────────────────────────────────
-enum class RobotMode { IDLE, MAPPING, NAVIGATION, TRANSITIONING };
-
-inline const char * mode_str(RobotMode m)
-{
-  switch (m) {
-    case RobotMode::IDLE:          return "IDLE";
-    case RobotMode::MAPPING:       return "MAPPING";
-    case RobotMode::NAVIGATION:    return "NAVIGATION";
-    case RobotMode::TRANSITIONING: return "TRANSITIONING";
-  }
-  return "UNKNOWN";
-}
-
+// MappingManager
+//
+// all_in_one.launch.py 启动后，所有子系统节点（FastLIO2、PGO、Octomap、
+// Nav2、opennav_coverage、CoveragePath）已常驻运行，各功能相互独立。
+//
+// 本节点仅作为统一的 /sys/* service 入口，将调用无状态地转发给对应的子系统节点，
+// 不做任何模式校验或互斥控制。
 // ─────────────────────────────────────────────────────────────────────────────
 class MappingManager : public rclcpp::Node
 {
 public:
   MappingManager();
-  ~MappingManager() override;
 
 private:
-  // ── Service 回调 ─────────────────────────────────────────────────────────
+  // ── 建图生命周期（标记语义，不管理子进程）───────────────────────────────
   void handle_start_mapping(
     std::shared_ptr<std_srvs::srv::Trigger::Request>  req,
     std::shared_ptr<std_srvs::srv::Trigger::Response> res);
@@ -46,6 +33,7 @@ private:
     std::shared_ptr<std_srvs::srv::Trigger::Request>  req,
     std::shared_ptr<std_srvs::srv::Trigger::Response> res);
 
+  // ── 导航生命周期（标记语义，不管理子进程）───────────────────────────────
   void handle_start_navigation(
     std::shared_ptr<std_srvs::srv::Trigger::Request>  req,
     std::shared_ptr<std_srvs::srv::Trigger::Response> res);
@@ -54,7 +42,7 @@ private:
     std::shared_ptr<std_srvs::srv::Trigger::Request>  req,
     std::shared_ptr<std_srvs::srv::Trigger::Response> res);
 
-  // ── 覆盖路径规划服务回调 ────────────────────────────────────────────────
+  // ── 覆盖路径规划（转发至 /coverage/* 子系统）────────────────────────────
   void handle_set_region(
     std::shared_ptr<auto_construct::srv::SetRegion::Request>  req,
     std::shared_ptr<auto_construct::srv::SetRegion::Response> res);
@@ -75,42 +63,34 @@ private:
     std::shared_ptr<auto_construct::srv::SetPathAndStart::Request>  req,
     std::shared_ptr<auto_construct::srv::SetPathAndStart::Response> res);
 
-  // ── 进程管理 ─────────────────────────────────────────────────────────────
-  bool start_launch_process(const std::string & launch_file);
-  void stop_current_process();
-
-  // ── 状态 ─────────────────────────────────────────────────────────────────
-  // ⚠️ 原版三个裸变量在 Reentrant + MultiThreadedExecutor 下存在数据竞争
-  //    用 mutex 统一保护，并增加 TRANSITIONING 防止并发切换
-  std::mutex          state_mtx_;
-  RobotMode           current_mode_  {RobotMode::IDLE};
-  bool                has_saved_map_ {false};
-  pid_t               current_pid_   {-1};
-  pid_t               coverage_pid_  {-1};
+  // ── 公共等待+转发模板 ────────────────────────────────────────────────────
+  template<typename SrvT>
+  bool wait_for_service(
+    typename rclcpp::Client<SrvT>::SharedPtr & client,
+    const std::string & name,
+    std::chrono::seconds timeout = std::chrono::seconds(2));
 
   // ── ROS 对象 ─────────────────────────────────────────────────────────────
   rclcpp::CallbackGroup::SharedPtr cb_group_;
 
-  // 系统模式管理服务
+  // 服务端（对外）
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr srv_start_mapping_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr srv_finish_mapping_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr srv_start_navigation_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr srv_stop_all_;
+  rclcpp::Service<auto_construct::srv::SetRegion>::SharedPtr        srv_set_region_;
+  rclcpp::Service<auto_construct::srv::ConfirmRegion>::SharedPtr    srv_confirm_region_;
+  rclcpp::Service<auto_construct::srv::UpdateParams>::SharedPtr     srv_update_params_;
+  rclcpp::Service<auto_construct::srv::GetMapList>::SharedPtr       srv_get_map_list_;
+  rclcpp::Service<auto_construct::srv::SetPathAndStart>::SharedPtr  srv_set_path_and_start_;
 
-  // 覆盖路径规划服务
-  rclcpp::Service<auto_construct::srv::SetRegion>::SharedPtr srv_set_region_;
-  rclcpp::Service<auto_construct::srv::ConfirmRegion>::SharedPtr srv_confirm_region_;
-  rclcpp::Service<auto_construct::srv::UpdateParams>::SharedPtr srv_update_params_;
-  rclcpp::Service<auto_construct::srv::GetMapList>::SharedPtr srv_get_map_list_;
-  rclcpp::Service<auto_construct::srv::SetPathAndStart>::SharedPtr srv_set_path_and_start_;
-
-  // 客户端
-  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr  client_save_map_;
-  rclcpp::Client<auto_construct::srv::SetRegion>::SharedPtr client_set_region_;
-  rclcpp::Client<auto_construct::srv::ConfirmRegion>::SharedPtr client_confirm_region_;
-  rclcpp::Client<auto_construct::srv::UpdateParams>::SharedPtr client_update_params_;
-  rclcpp::Client<auto_construct::srv::GetMapList>::SharedPtr client_get_map_list_;
-  rclcpp::Client<auto_construct::srv::SetPathAndStart>::SharedPtr client_set_path_and_start_;
+  // 客户端（对内）
+  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr                client_save_map_;
+  rclcpp::Client<auto_construct::srv::SetRegion>::SharedPtr        client_set_region_;
+  rclcpp::Client<auto_construct::srv::ConfirmRegion>::SharedPtr    client_confirm_region_;
+  rclcpp::Client<auto_construct::srv::UpdateParams>::SharedPtr     client_update_params_;
+  rclcpp::Client<auto_construct::srv::GetMapList>::SharedPtr       client_get_map_list_;
+  rclcpp::Client<auto_construct::srv::SetPathAndStart>::SharedPtr  client_set_path_and_start_;
 };
 
 #endif  // MAPPING_MANAGER_HPP_
