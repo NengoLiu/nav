@@ -96,7 +96,7 @@ MappingManager::MappingManager() : Node("mapping_manager")
     rmw_qos_profile_services_default, cb_group_);
 
   client_set_path_and_start_ = this->create_client<auto_construct::srv::SetPathAndStart>(
-    "/coverage/set_path_and_start",
+    "/coverage/coverage_path/set_path_and_start",
     rmw_qos_profile_services_default, cb_group_);
 
   RCLCPP_INFO(this->get_logger(), "🟢 MappingManager 已就绪");
