@@ -1,0 +1,4 @@
+string map_dir   # 地图目录完整路径 (必填)
+---
+bool   success
+string message

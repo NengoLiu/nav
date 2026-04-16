@@ -1,0 +1,5 @@
+auto_construct/CoverageRegion region
+---
+bool success
+string message
+

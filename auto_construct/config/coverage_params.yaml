@@ -1,0 +1,23 @@
+coverage_server:
+  ros__parameters:
+    # 基础坐标系设置
+    coordinates_in_cartesian_frame: true
+    
+    # 机器人物理参数 (极其重要，缺失会导致算法崩溃)
+    robot_width: 0.5
+    operation_width: 0.5
+    min_turning_radius: 0.5      # DUBIN 曲线计算的命根子！
+    linear_curv_change: 0.1
+    
+    # 默认覆盖模式
+    default_allow_overlap: false
+    default_headland_type: "CONSTANT"
+    default_headland_width: 0.5
+    default_path_continuity_type: "CONTINUOUS"
+    default_path_type: "DUBIN"         # 对应你传的 curve_type
+    default_route_type: "BOUSTROPHEDON"  # 对应你传的 route_type
+    default_swath_angle: -1.0
+    default_swath_angle_type: "BRUTE_FORCE"
+    default_swath_type: "LENGTH"
+    default_turn_point_distance: 0.1
+    

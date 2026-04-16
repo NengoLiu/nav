@@ -1,0 +1,9 @@
+float64 robot_width
+float64 headland_width
+string route_type
+string curve_type
+float64 swath_angle
+---
+bool success
+string message
+nav_msgs/Path path
