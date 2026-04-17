@@ -71,7 +71,6 @@ bt_navigator:
       - nav2_spin_cancel_bt_node
       - nav2_back_up_cancel_bt_node
       - nav2_drive_on_heading_cancel_bt_node
-      - nav2_remove_in_collision_goals_action_bt_node
 
 # -----------------------------------------------------------------------------
 # Controller Server — 局部轨迹跟踪控制器
