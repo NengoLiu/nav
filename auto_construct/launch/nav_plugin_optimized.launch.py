@@ -107,9 +107,12 @@ def generate_launch_description():
         }]
     )
 
-    # 2. Nav2 map_server —— navigation_launch.py 不会启动它，需显式拉起
-    #    否则 /map_server/load_map 服务不可用，且 lifecycle_manager 因找不到
-    #    node_names 中的 "map_server" 而无法激活整个 Nav2。
+    # 2. Nav2 map_server —— navigation_launch.py 的 lifecycle_manager_navigation
+    #    的 node_names 硬编码为 [controller_server, planner_server, bt_navigator …]，
+    #    不包含 map_server，所以必须：
+    #    a) 显式启动 map_server 进程
+    #    b) 另起一个专属 lifecycle_manager_map 来 configure/activate 它，
+    #       否则 /map_server/load_map 服务永远不会上线。
     map_server_node = Node(
         package='nav2_map_server',
         executable='map_server',
@@ -121,7 +124,20 @@ def generate_launch_description():
         ],
     )
 
-    # 3. Nav2 导航系统 (planner / controller / bt_navigator / lifecycle_manager 等)
+    lifecycle_manager_map = Node(
+        package='nav2_lifecycle_manager',
+        executable='lifecycle_manager',
+        name='lifecycle_manager_map',
+        output='screen',
+        parameters=[{
+            'autostart': True,
+            'node_names': ['map_server'],
+            'bond_timeout': 4.0,
+            'use_sim_time': LaunchConfiguration('use_sim_time'),
+        }],
+    )
+
+    # 3. Nav2 导航系统 (planner / controller / bt_navigator / lifecycle_manager_navigation 等)
     nav2_navigation_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(nav2_bringup_dir, 'launch', 'navigation_launch.py')
@@ -167,6 +183,7 @@ def generate_launch_description():
         # 导航专用节点
         localizer_node,
         map_server_node,
+        lifecycle_manager_map,
         nav2_navigation_launch,
 
         # 覆盖路径执行节点
