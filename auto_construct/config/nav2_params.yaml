@@ -27,17 +27,18 @@ bt_navigator:
     action_server_result_timeout: 900.0
 
     # 导航器插件列表
+    # 注：CoveragePath 走标准 navigate_through_poses action；
+    #     CoverageManagerNode 直接调 opennav_coverage 节点的 compute_coverage_path action。
+    #     两者都不经过 bt_navigator 的 coverage navigator，故此处不再加载，
+    #     避免 opennav_coverage::CoverageNavigator 插件加载异常拖垮 bt_navigator。
     navigators:
       - navigate_to_pose
       - navigate_through_poses
-      - coverage               # opennav_coverage 覆盖导航插件
 
     navigate_to_pose:
       plugin: "nav2_bt_navigator::NavigateToPoseNavigator"
     navigate_through_poses:
       plugin: "nav2_bt_navigator::NavigateThroughPosesNavigator"
-    coverage:
-      plugin: "opennav_coverage::CoverageNavigator"
 
     # BT 插件库 (保持完整列表)
     plugin_lib_names:
@@ -431,7 +432,6 @@ lifecycle_manager:
     attempt_reconnect_timeout: 2000
     bond_heartbeat_period: 0.1
     node_names:
-      - map_server
       - planner_server
       - smoother_server
       - controller_server
