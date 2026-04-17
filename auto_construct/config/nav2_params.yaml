@@ -35,10 +35,13 @@ bt_navigator:
       - navigate_to_pose
       - navigate_through_poses
 
+    # bt_navigator 用 backported_bt_navigator 的可执行文件（与其 .so ABI
+    # 配套），所以 Navigator 插件也必须用 backported_bt_navigator/ 命名空间，
+    # 否则 bt_navigator 在 configure 阶段找不到类抛 pluginlib 异常。
     navigate_to_pose:
-      plugin: "nav2_bt_navigator::NavigateToPoseNavigator"
+      plugin: "backported_bt_navigator/NavigateToPoseNavigator"
     navigate_through_poses:
-      plugin: "nav2_bt_navigator::NavigateThroughPosesNavigator"
+      plugin: "backported_bt_navigator/NavigateThroughPosesNavigator"
 
     # BT 插件库 (保持完整列表)
     plugin_lib_names:
