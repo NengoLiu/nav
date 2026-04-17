@@ -107,7 +107,21 @@ def generate_launch_description():
         }]
     )
 
-    # 2. Nav2 导航系统 (包含 map_server)
+    # 2. Nav2 map_server —— navigation_launch.py 不会启动它，需显式拉起
+    #    否则 /map_server/load_map 服务不可用，且 lifecycle_manager 因找不到
+    #    node_names 中的 "map_server" 而无法激活整个 Nav2。
+    map_server_node = Node(
+        package='nav2_map_server',
+        executable='map_server',
+        name='map_server',
+        output='screen',
+        parameters=[
+            nav2_params_file,
+            {'use_sim_time': LaunchConfiguration('use_sim_time')},
+        ],
+    )
+
+    # 3. Nav2 导航系统 (planner / controller / bt_navigator / lifecycle_manager 等)
     nav2_navigation_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(nav2_bringup_dir, 'launch', 'navigation_launch.py')
@@ -119,7 +133,7 @@ def generate_launch_description():
         }.items()
     )
 
-    # 3. 覆盖路径执行节点
+    # 4. 覆盖路径执行节点
     coverage_path_node = Node(
         package='auto_construct',
         namespace='coverage',
@@ -152,6 +166,7 @@ def generate_launch_description():
 
         # 导航专用节点
         localizer_node,
+        map_server_node,
         nav2_navigation_launch,
 
         # 覆盖路径执行节点
