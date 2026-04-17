@@ -90,6 +90,19 @@ def generate_launch_description():
     # 导航模式专用节点
     # ──────────────────────────────────────────────────────────
 
+    # 0. body → base_link 静态 TF
+    # backported_bt_navigator 的 Navigator plugin / BT 动作节点内部
+    # 硬编码查询 base_link，但本机 FASTLIO2 发布的是 body。补一个
+    # identity 的静态变换让两边打通，避免
+    # "Could not find a connection between 'map' and 'base_link'"。
+    body_to_base_link_tf = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='body_to_base_link',
+        arguments=['0', '0', '0', '0', '0', '0', 'body', 'base_link'],
+        parameters=[{'use_sim_time': use_sim_time}],
+    )
+
     # 1. 3D 全局定位节点
     localizer_node = Node(
         package="localizer",
@@ -243,6 +256,9 @@ def generate_launch_description():
         coverage_frame_id_arg,
         skip_on_failure_arg,
         autostart_arg,
+
+        # TF 补丁
+        body_to_base_link_tf,
 
         # 定位
         localizer_node,
