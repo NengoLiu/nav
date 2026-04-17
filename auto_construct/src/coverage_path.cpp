@@ -75,7 +75,7 @@ void CoveragePath::setupInterfaces()
     cb_group_ = create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
     nav_client_ = rclcpp_action::create_client<NavigateThroughPoses>(
-        this, "navigate_through_poses", cb_group_);
+        this, "/navigate_through_poses", cb_group_);
 
     map_client_ = create_client<LoadMap>(
         "/map_server/load_map",
