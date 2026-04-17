@@ -44,7 +44,20 @@ bt_navigator:
       plugin: "backported_bt_navigator/NavigateThroughPosesNavigator"
 
     # BT 插件库 (保持完整列表)
+    # 注意：backported_bt_navigator 自己不带控制节点（RecoveryNode /
+    # PipelineSequence / RoundRobin / RateController 等），必须显式
+    # 加载 apt 的 nav2_behavior_tree 里的对应 .so，否则 Activate 时加载
+    # navigate_to_pose_w_replanning_and_recovery.xml 会报
+    # "Node not recognized: RecoveryNode"。
     plugin_lib_names:
+      # 控制节点
+      - nav2_pipeline_sequence_bt_node
+      - nav2_round_robin_node_bt_node
+      - nav2_recovery_node_bt_node
+      - nav2_rate_controller_bt_node
+      - nav2_distance_controller_bt_node
+      - nav2_speed_controller_bt_node
+      # 动作节点
       - nav2_compute_path_to_pose_action_bt_node
       - nav2_compute_path_through_poses_action_bt_node
       - nav2_smooth_path_action_bt_node
