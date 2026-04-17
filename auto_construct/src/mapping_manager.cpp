@@ -306,13 +306,14 @@ void MappingManager::handle_load_map(
   std::shared_ptr<nav2_msgs::srv::LoadMap::Request>  req,
   std::shared_ptr<nav2_msgs::srv::LoadMap::Response> res)
 {
-  if (!client_load_map_->wait_for_service(2s)) {
+  if (!client_load_map_->wait_for_service(5s)) {
     res->result = nav2_msgs::srv::LoadMap::Response::RESULT_UNDEFINED_FAILURE;
     RCLCPP_WARN(this->get_logger(), "地图加载服务未就绪，请先启动导航模式");
     return;
   }
+  // onLoadMap 需要读取 YAML + 解码 PGM，大图可能耗时数秒，留出充足余量。
   auto future = client_load_map_->async_send_request(req);
-  if (future.wait_for(10s) != std::future_status::ready) {
+  if (future.wait_for(30s) != std::future_status::ready) {
     res->result = nav2_msgs::srv::LoadMap::Response::RESULT_UNDEFINED_FAILURE;
     RCLCPP_WARN(this->get_logger(), "地图加载超时");
     return;
@@ -453,13 +454,15 @@ void MappingManager::handle_set_path_and_start(
   std::shared_ptr<auto_construct::srv::SetPathAndStart::Request>  req,
   std::shared_ptr<auto_construct::srv::SetPathAndStart::Response> res)
 {
-  if (!client_set_path_and_start_->wait_for_service(2s)) {
+  if (!client_set_path_and_start_->wait_for_service(5s)) {
     res->success = false;
     res->message = "覆盖路径执行服务未就绪，请先启动导航模式";
     return;
   }
+  // CoveragePath::svcSetPathAndStart 内部会同步调用 /map_server/load_map
+  // (最多 5+10=15s) 并加载 YAML 路径，此处超时必须足够覆盖全流程。
   auto future = client_set_path_and_start_->async_send_request(req);
-  if (future.wait_for(5s) != std::future_status::ready) {
+  if (future.wait_for(30s) != std::future_status::ready) {
     res->success = false;
     res->message = "设置路径超时";
     return;
