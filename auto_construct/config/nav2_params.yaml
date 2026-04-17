@@ -178,7 +178,11 @@ controller_server:
         cost_power: 1
         cost_weight: 3.81
         critical_cost: 300.0
-        consider_footprint: true
+        # costmap 用 robot_radius（圆形），没有提供 footprint 多边形，
+        # 这里必须为 false，否则 ConstraintCritic 会在 configure 阶段抛
+        # "no robot footprint provided in the costmap" 致 controller_server
+        # 配置失败，lifecycle_manager_navigation 中止整个 Nav2 bringup。
+        consider_footprint: false
         collision_cost: 1000000.0
         near_goal_distance: 1.0
 
